@@ -1,0 +1,20 @@
+{
+  "<prolific_pid_1>": [
+    "<prolific_pid_1>_comma_001.wav",
+    "<prolific_pid_1>_comma_002.wav",
+    "cloned_<prolific_pid_1>_comma_001_ref_wolf_009_f5tts.wav",
+    "cloned_<prolific_pid_1>_comma_001_ref_wolf_009_maskgct.wav",
+    "cloned_<prolific_pid_1>_comma_001_ref_wolf_009_sparc.wav",
+    "cloned_<prolific_pid_1>_comma_002_ref_wolf_009_f5tts.wav",
+    "cloned_<prolific_pid_1>_comma_002_ref_wolf_009_maskgct.wav",
+    "cloned_<prolific_pid_1>_comma_002_ref_wolf_009_sparc.wav"
+  ],
+  "testparticipant": [
+    "cloned_testparticipant_comma_002_ref_wolf_001_maskgct.wav",
+    "cloned_testparticipant_comma_003_ref_wolf_006_maskgct.wav",
+    "testparticipant_comma_002.wav",
+    "testparticipant_comma_003.wav",
+    "testparticipant_comma_004.wav",
+    "testparticipant_comma_005.wav"
+  ]
+}
