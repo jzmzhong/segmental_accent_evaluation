@@ -1,3 +1,3 @@
 # Subjective and Objective Correlation Analysis
 
-[Code to be released soon]
+Analysis code for examining relationships between subjective ratings and objective speech metrics is forthcoming.

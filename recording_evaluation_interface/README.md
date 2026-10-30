@@ -1,6 +1,6 @@
 # Recording and Evaluation Interface
 
-This part of the repository contains the two interfaces we use for speech data recording and evaluation. In the first stage, we set up an interface to collect recordings from participants reading pre-selected utterances, as well as some of their demographic information. In the second stage, we use some of the collected recordings to generate synthetic speech in their voice, and either ask themselves to evaluate these synthetic speech (own-voice evaluation) or ask others (from the same accent region) to evaluation their speech (stranger-voice evaluation).
+This directory contains two interfaces for speech recording and evaluation. In Stage 1, participants record themselves reading a set of selected utterances and provide demographic information. In Stage 2, some of these recordings are used to generate synthetic speech in the participants' voices. Participants then evaluate their own generated speech (own-voice evaluation), or other listeners from the same accent region evaluate it (stranger-voice evaluation).
 
 ## Stage 1 Voice Recording
 
@@ -10,7 +10,7 @@ This part of the repository contains the two interfaces we use for speech data r
 - Recording and survey responses upload handler: [`save-recording.cgi`](stage_1_prolific_recording/save-recording.cgi)
 - Survey trials: [`experiment.js`](stage_1_prolific_recording/js/experiment.js)
 
-Before deployment, please make sure to update the recording utterances, the directory to save audio recordings and survey responses, and Prolific completion code.
+Before deployment, update the utterance list, the directory used to save recordings and survey responses, and the Prolific completion code.
 
 ### Running locally
 
@@ -18,7 +18,7 @@ Before deployment, please make sure to update the recording utterances, the dire
 python3 -m http.server 8000 --directory stage_1_prolific_recording
 ```
 
-The recording interface will be available at [Local URL with Prolific metadata](http://localhost:8000/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession). For a quick preview of the recording procedures, add ``debug=1`` to the URL parameters for a quick 2 utterance recording. A sample deployed study can  seen at [Hosted URL with Prolific metadata](https://sweb.inf.ed.ac.uk/~s2526235/listening_tests/202607_accent_evaluation/stage_1_prolific_recording/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession)
+The recording interface will be available at [localhost:8000](http://localhost:8000/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession) with the example Prolific parameters. To preview the recording procedure with two utterances, add `debug=1` to the URL. A deployed example is available [here](https://sweb.inf.ed.ac.uk/~s2526235/listening_tests/202607_accent_evaluation/stage_1_prolific_recording/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession).
 
 ### Collected data
 
@@ -40,13 +40,14 @@ Participant recordings and metadata will be stored together in a private partici
 - Survey responses upload handler: [`save-responses.cgi`](stage_2_accent_evaluation/save-responses.cgi)
 - Audio directory: [`wav/`](stage_2_accent_evaluation/data/wav/)
 
-Before deployment, please make sure to update the segmented utterances, listening test instructions, the directory to save survey responses, and Prolific completion code.
+Before deployment, update the segmented utterances, listening-test instructions, the directory used to save survey responses, and the Prolific completion code.
 
-The audios to be evaluated should be placed in the following directory with following format.
+Place the audio files to be evaluated in the following directory, using the specified filename formats:
+
 ```text
-# recording as reference speech
+# Reference recordings
 stage_2_accent_evaluation/data/wav/<SPEAKER_ID>/<SPEAKER_ID>_<UTTERANCE_ID>.wav
-# TTS generation as candidate speech
+# Generated speech
 stage_2_accent_evaluation/data/wav/<SPEAKER_ID>/cloned_<SPEAKER_ID>_<UTTERANCE_ID>_ref_<REFERENCE_UTTERANCE_ID>_<TTS_SYSTEM>.wav
 ```
 
@@ -56,8 +57,8 @@ stage_2_accent_evaluation/data/wav/<SPEAKER_ID>/cloned_<SPEAKER_ID>_<UTTERANCE_I
 python3 -m http.server 8000 --directory stage_2_accent_evaluation
 ```
 
-The evaluation interface will be available at [Local URL with Prolific metadata](http://localhost:8000/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession). The evaluation supports two separate modes: own-voice evaluation and stranger-voice evaluation.
+The evaluation interface will be available at [localhost:8000](http://localhost:8000/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession) with the example Prolific parameters. It supports two modes: own-voice evaluation and stranger-voice evaluation.
 
-For the own-voice evaluation mode, the URL only accepts PROLIFIC_PID in the pre-approved speaker lists who have contributed their recordings. For the stranger-voice evaluation, an additional URL parameter ``TAR_SPK=xxx`` needs to be provided to indicate which voice to evaluate.
+For own-voice evaluation, `PROLIFIC_PID` must identify a participant on the pre-approved list who contributed a recording. For stranger-voice evaluation, add the `TAR_SPK=<speaker_id>` URL parameter to specify whose voice to evaluate.
 
-For a quick preview of a random evaluation page, add ``preview=question`` to the URL parameters. A sample deployed study can bee seen at [Hosted URL with Prolific metadata](https://sweb.inf.ed.ac.uk/~s2526235/listening_tests/202607_accent_evaluation/stage_2_accent_evaluation/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession&TAR_SPK=69e8b0adf78ba4d3ede8b1f5).
+To preview a randomly selected evaluation page, add `preview=question` to the URL. A deployed example is available [here](https://sweb.inf.ed.ac.uk/~s2526235/listening_tests/202607_accent_evaluation/stage_2_accent_evaluation/?PROLIFIC_PID=testparticipant&STUDY_ID=teststudy&SESSION_ID=testsession&TAR_SPK=69e8b0adf78ba4d3ede8b1f5).
