@@ -3,6 +3,11 @@
 Run commands from this directory.
 
 ```bash
+# Download data needed for this part
+hf download jzmzhong/segmental_accent_annotation --repo-type dataset --local-dir ../data
+```
+
+```bash
 # Align audio to subwords using the existing Conda mfa environment.
 bash 01_mfa_align.sh
 uv run python 02_g2p_align_subword.py
@@ -18,12 +23,16 @@ bash 12_extract_features_frame.sh
 bash 13_extract_features_utterance.sh
 
 # Subword-level correlation between objective features and subjective annotations.
-bash 21_correlation_subword.sh --raters listeners --method spearman
+bash 21_correlation_subword.sh --raters listeners --method spearman --latex
 
 # Utterance-level correlation between objective features and subjective annotations.
-bash 22_correlation_utterance.sh --raters listeners --method spearman
+bash 22_correlation_utterance.sh --raters listeners --method spearman --latex
 ```
 
 For aggregating frame-level metrics into subword-level for correlation analysis, **maximum frame distance within each subword** is used by default.
 Other options are the mean or the frame nearest the temporal midpoint:
 
+```bash
+bash 21_correlation_subword.sh --raters listeners --method spearman --latex --stat mean
+bash 21_correlation_subword.sh --raters listeners --method spearman --latex --stat centroid
+```

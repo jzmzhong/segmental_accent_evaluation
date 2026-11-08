@@ -11,7 +11,7 @@ from extraction_common import UTTERANCE_CACHE_FILENAMES, load_cache
 SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR.parent / "data"
 TEMP_DIR = SCRIPT_DIR.parent / "data_temp"
-os.environ.setdefault("MPLCONFIGDIR", str(TEMP_DIR / "models" / "matplotlib"))
+os.environ.setdefault("MPLCONFIGDIR", str(TEMP_DIR / "matplotlib"))
 
 import matplotlib
 matplotlib.use("Agg")
@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
 
 SPEAKER_LABELS = {
     "6a08fea524e9dc84ff9a258a": "Australian male",

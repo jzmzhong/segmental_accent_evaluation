@@ -11,7 +11,7 @@ from extraction_common import FRAME_CACHE_FILENAMES
 SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR.parent / "data"
 TEMP_DIR = SCRIPT_DIR.parent / "data_temp"
-os.environ.setdefault("MPLCONFIGDIR", str(TEMP_DIR / "models" / "matplotlib"))
+os.environ.setdefault("MPLCONFIGDIR", str(TEMP_DIR / "matplotlib"))
 
 import matplotlib
 matplotlib.use("Agg")
@@ -52,8 +52,6 @@ def load_subword_metrics(data_dir, stat):
         data = data.rename(columns={f"{feature}_distance_{stat}": feature for feature in FEATURE_NAMES})
         frames.append(data)
     if not frames:
-        if stat == "midpoint":
-            return load_subword_metrics(data_dir, "centroid")
         raise FileNotFoundError(f"No subword_metric_summary_{stat}.csv files found under {data_dir}")
     return pd.concat(frames, ignore_index=True)
 
@@ -85,7 +83,7 @@ def format_latex_cell(value):
 
 def write_latex_table(correlations_by_stat, row_order, output_path):
     """Write a booktabs table with one column per subword aggregation statistic
-    (mean/max/midpoint), showing each metric's correlation with the subword
+    (mean/max/centroid), showing each metric's correlation with the subword
     annotation score under that aggregation."""
     rating_column = RATING_COLUMNS[0]
     stats = list(correlations_by_stat)
@@ -105,7 +103,7 @@ def write_latex_table(correlations_by_stat, row_order, output_path):
     output_path.write_text("\n".join(lines) + "\n")
 
 
-STATS = ("mean", "max", "midpoint")
+STATS = ("mean", "max", "centroid")
 
 
 def plot_summaries(data_dir, output_dir, stat, exclude_sparc=False, write_latex=False, features=FEATURE_NAMES, target_speakers=None):
@@ -225,7 +223,7 @@ def frame_times(frame_count, duration):
 def aggregate_subwords(values, times, alignments, statistic):
     results = []
     for _, start, end, _ in alignments:
-        if statistic in ("midpoint", "centroid"):
+        if statistic == "centroid":
             results.append(values[np.abs(times - (start + end) / 2).argmin()])
         else:
             selected = values[(times >= start) & (times <= end)]
@@ -330,13 +328,11 @@ def cli():
     parser.add_argument("--target-speakers", nargs="+", default=list(SPEAKER_LABELS))
     parser.add_argument("--raters", choices=("all", "listeners", "voice-donors"), default="all",
                         help="Raters used when building scores; all reproduces the original pipeline (default).")
-    parser.add_argument("--stat", choices=(*STATS, "centroid"), default="max",
-                        help="Subword aggregation: max (default), mean, or nearest frame to the midpoint; centroid is a legacy alias.")
+    parser.add_argument("--stat", choices=STATS, default="max",
+                        help="Subword aggregation: max (default), mean, or centroid (nearest frame to the subword midpoint).")
     parser.add_argument("--exclude-sparc", action="store_true")
-    parser.add_argument("--latex", action="store_true", help="Also compare mean/max/midpoint in LaTeX tables.")
+    parser.add_argument("--latex", action="store_true", help="Also compare mean/max/centroid in LaTeX tables.")
     args = parser.parse_args()
-    if args.stat == "centroid":
-        args.stat = "midpoint"
     if args.summary_dir is None:
         args.summary_dir = TEMP_DIR / "subword_metrics"
         build_subword_summaries(args, STATS if args.latex else (args.stat,))
