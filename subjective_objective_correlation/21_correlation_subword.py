@@ -1,15 +1,12 @@
-"""Build subword summaries and Spearman heatmaps for objective metrics and annotations.
-
-Adapted from data_analysis/Prolific/105_rpt_objective_correlation.py and
-111_subword_correlation_heatmap.py (the generator of the original
-word-level_metrics/subword_metric_rating_spearman_correlation_all.png).
-"""
+"""Build subword-level summaries and Spearman heatmaps for objective metrics and subjective annotations."""
 
 import argparse
 import json
 import os
 from pathlib import Path
 import re
+
+from extraction_common import FRAME_CACHE_FILENAMES
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR.parent / "data"
@@ -164,13 +161,13 @@ def plot_summaries(data_dir, output_dir, stat, exclude_sparc=False, write_latex=
 
 
 FEATURE_SPECS = {
-    "ppg": ("ppg_features.pt", "frame_distances"),
-    "f0": ("f0_formants.pt", "f0_frame_distances"),
-    "formants": ("f0_formants.pt", "formant_frame_distances"),
-    "ecapatdnn": ("ecapatdnn_embeddings.pt", "frame_distances"),
-    "wavlm": ("wavlm_embeddings.pt", "frame_distances"),
-    "genaid": ("genaid_embeddings.pt", "frame_distances"),
-    "voxlect": ("voxlect_embeddings.pt", "frame_distances"),
+    "ppg": (FRAME_CACHE_FILENAMES["ppg"], "frame_distances"),
+    "f0": (FRAME_CACHE_FILENAMES["f0_formants"], "f0_frame_distances"),
+    "formants": (FRAME_CACHE_FILENAMES["f0_formants"], "formant_frame_distances"),
+    "ecapatdnn": (FRAME_CACHE_FILENAMES["ecapatdnn"], "frame_distances"),
+    "wavlm": (FRAME_CACHE_FILENAMES["wavlm"], "frame_distances"),
+    "genaid": (FRAME_CACHE_FILENAMES["genaid"], "frame_distances"),
+    "voxlect": (FRAME_CACHE_FILENAMES["voxlect"], "frame_distances"),
 }
 CANDIDATE_PATTERN = re.compile(
     r"cloned_(?P<speaker>[0-9a-f]+)_(?P<utterance>(?:comma|wolf)_\d{3})_"
@@ -246,7 +243,7 @@ def build_subword_summaries(args, statistics):
         path = args.feature_dir / filename
         if path not in caches:
             if not path.is_file():
-                raise FileNotFoundError(f"Missing feature cache {path}; run 12_extract_features_subword.sh first.")
+                raise FileNotFoundError(f"Missing feature cache {path}; run 12_extract_features_frame.sh first.")
             caches[path] = torch.load(path, map_location="cpu", weights_only=True)
     utterances = {entry["id"]: entry["text"].split("|")
                   for entry in json.loads(args.segmented_text.read_text())}
@@ -323,7 +320,7 @@ def cli():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--summary-dir", "--data-dir", type=Path,
                         help="Read existing summaries instead of building them (also supports old per-batch results).")
-    parser.add_argument("--feature-dir", type=Path, default=TEMP_DIR / "features")
+    parser.add_argument("--feature-dir", type=Path, default=TEMP_DIR / "features_frame")
     parser.add_argument("--alignment-dir", type=Path, default=TEMP_DIR / "wav_txt_pairs_g2psubword")
     parser.add_argument("--annotation-dir", type=Path, default=DATA_DIR / "annotations_ratings")
     parser.add_argument("--wav-dir", type=Path, default=DATA_DIR / "wav")

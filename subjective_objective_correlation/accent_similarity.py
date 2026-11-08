@@ -1,8 +1,3 @@
-# Copyright (c) 2023 Amphion.
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
 """Frame and utterance accent embeddings from GenAID and VoxLect."""
 
 import os
@@ -74,7 +69,9 @@ class AccentSimilarity:
             waveform = torchaudio.functional.resample(waveform, sample_rate, SAMPLE_RATE)
         return waveform.mean(dim=0, keepdim=True).float().to(self.device)
 
-    def extract_embedding_voxlect(self, path):
+    def extract_voxlect_frame(self, path):
+        """Return valid VoxLect temporal features shaped (frames, dimensions)."""
+        self._require_model("voxlect")
         waveform = self._load_audio(path)
         frame_embeddings = {}
 
@@ -92,36 +89,77 @@ class AccentSimilarity:
         frame_count = self.model._get_feat_extract_output_lengths(length).item()
         return frame_embeddings["value"][0][:frame_count].numpy()
 
-    def extract_embedding_voxlect_utterance(self, path):
+    def extract_voxlect_utterance(self, path):
+        """Return the native pooled Voxlect embedding, using at most 15 seconds."""
+        self._require_model("voxlect")
         waveform = self._load_audio(path)
         with torch.no_grad():
             _, embedding = self.model(waveform[:, :VOXLECT_MAX_AUDIO_LENGTH], return_feature=True)
         return embedding.detach().cpu().numpy().reshape(1, -1)
 
-    def extract_embeddings(self, path):
-        if self.model_name == "voxlect":
-            return self.extract_embedding_voxlect(path)
+    def _require_model(self, model_name):
+        if self.model_name != model_name:
+            raise ValueError(f"This extractor requires {model_name}, but {self.model_name} is loaded.")
+
+    def extract_genaid_frame(self, path):
+        """Return GenAID's XLSR frame features shaped (frames, dimensions)."""
+        self._require_model("genaid")
         with torch.no_grad():
             return self.model.encode_batch(self._load_audio(path), frame_level=True).squeeze(0).cpu().numpy()
 
-    def extract_utterance_embedding(self, path):
-        if self.model_name == "voxlect":
-            return self.extract_embedding_voxlect_utterance(path)
+    def extract_genaid_utterance(self, path):
+        """Return GenAID's native pooled/MLP embedding shaped (1, 64)."""
+        self._require_model("genaid")
         with torch.no_grad():
             return self.model.encode_batch(self._load_audio(path)).cpu().numpy().reshape(1, -1)
 
     def compute_utterance_similarity(self, path_ref, path_deg, return_embeddings=False):
-        reference = self.extract_utterance_embedding(path_ref)
-        candidate = self.extract_utterance_embedding(path_deg)
+        reference = getattr(self, f"extract_{self.model_name}_utterance")(path_ref)
+        candidate = getattr(self, f"extract_{self.model_name}_utterance")(path_deg)
         distance = cosine_distance(reference[0], candidate[0])
         if return_embeddings:
             return distance, reference, candidate
         return distance
 
     def compute_similarity(self, path_ref, path_deg, return_embeddings=False):
-        reference = self.extract_embeddings(path_ref)
-        candidate = self.extract_embeddings(path_deg)
+        reference = getattr(self, f"extract_{self.model_name}_frame")(path_ref)
+        candidate = getattr(self, f"extract_{self.model_name}_frame")(path_deg)
         result = dtw_frame_distances(reference, candidate)
         if return_embeddings:
             return (*result, reference, candidate)
         return result
+
+
+class GenAIDPooling:
+    """Load only GenAID's trained pooling/head to reuse cached XLSR frames."""
+
+    def __init__(self, device=None, cache_dir=None, source=None):
+        from hyperpyyaml import load_hyperpyyaml
+        from model_setup import download_genaid
+
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        cache_dir = Path(cache_dir) if cache_dir else Path(__file__).resolve().parents[1] / "data_temp/models"
+        configure_caches(cache_dir)
+        source = download_genaid(source or os.environ.get("GENAID_SOURCE", DEFAULT_GENAID_SOURCE), cache_dir)
+        with (source / "hyperparams.yaml").open() as handle:
+            # Replace the encoder before constructing YAML objects. The pretrainer
+            # is not invoked: only model.ckpt (the two MLPs) is needed here.
+            hparams = load_hyperpyyaml(handle, overrides={"wav2vec2": None, "pretrained_path": str(source)})
+        state = torch.load(source / "model.ckpt", map_location="cpu", weights_only=True)
+        # Training checkpoints may also contain output classifiers/loss heads.
+        # Only ModuleList item 0 (the pre-output embedding MLP) is required.
+        hparams["preout_mlp"].load_state_dict(
+            {key.removeprefix("0."): value for key, value in state.items() if key.startswith("0.")}
+        )
+        self.pool = hparams["avg_pool"].to(self.device).eval()
+        self.head = hparams["preout_mlp"].to(self.device).eval()
+
+    def extract_genaid_utterance_from_frames(self, frames):
+        """Apply native GenAID pooling/MLP to XLSR frames; return (1, 64)."""
+        frames = torch.as_tensor(frames, dtype=torch.float32, device=self.device)
+        with torch.inference_mode():
+            pooled = self.pool(frames.unsqueeze(0)).reshape(1, -1)
+            return self.head(pooled).cpu().numpy().reshape(1, -1)
+
+    def __call__(self, frames):
+        return self.extract_genaid_utterance_from_frames(frames)

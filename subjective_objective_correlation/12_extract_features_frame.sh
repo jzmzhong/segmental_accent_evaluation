@@ -4,5 +4,5 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 export PYTHONUNBUFFERED=1
-exec uv run --project "$SCRIPT_DIR" python "$SCRIPT_DIR/12_extract_features_subword.py" \
+exec uv run --project "$SCRIPT_DIR" python "$SCRIPT_DIR/12_extract_features_frame.py" \
     --device cuda:0 --gpu 0 "$@"

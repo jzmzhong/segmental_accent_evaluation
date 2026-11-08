@@ -1,36 +1,14 @@
-"""Extract frame-level PPG, accent, speaker, and F0/formant features for subword analysis.
-"""
+"""Extract frame-level PPG, accent, speaker, and F0/formant features for subword analysis."""
 
 import argparse
 from pathlib import Path
-import re
 
 from model_setup import configure_caches as configure_model_caches
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-DATA_DIR = SCRIPT_DIR.parent / "data"
-TEMP_DIR = SCRIPT_DIR.parent / "data_temp"
-DEFAULT_SPEAKERS = (
-    "69e8b0adf78ba4d3ede8b1f5", "6a08fea524e9dc84ff9a258a",
-    "66fc6008cda3d277a8978dbf", "69f8709095bf5e9416de1057",
+from extraction_common import (
+    FRAME_CACHE_FILENAMES as CACHE_FILENAMES,
+    DEFAULT_SPEAKERS, TEMP_DIR, candidate_pairs, load_cache,
 )
-CACHE_FILENAMES = {
-    "ppg": "ppg_features.pt",
-    "genaid": "genaid_embeddings.pt",
-    "voxlect": "voxlect_embeddings.pt",
-    "f0_formants": "f0_formants.pt",
-    "wavlm": "wavlm_embeddings.pt",
-    "ecapatdnn": "ecapatdnn_embeddings.pt",
-}
-CANDIDATE_PATTERN = re.compile(
-    r"cloned_(?P<speaker>[0-9a-f]+)_(?P<utterance>(?:comma|wolf)_\d{3})_"
-    r"ref_(?:comma|wolf)_\d{3}_(?:maskgct|f5tts|sparc)$"
-)
-
-
-def load_cache(path):
-    import torch
-    return torch.load(path, map_location="cpu", weights_only=True) if path.exists() else {}
 
 
 def cache_entry(result, f0_formants=False):
@@ -45,24 +23,8 @@ def cache_entry(result, f0_formants=False):
     return {key: torch.as_tensor(value) if value is not None else None for key, value in values.items()}
 
 
-def candidate_pairs(wav_dir, target_speakers):
-    for candidate in sorted(wav_dir.rglob("cloned_*.wav")):
-        match = CANDIDATE_PATTERN.fullmatch(candidate.stem)
-        if match is None:
-            print(f"Skipping unrecognised filename: {candidate.name}")
-            continue
-        speaker, utterance = match.group("speaker", "utterance")
-        if target_speakers and speaker not in target_speakers:
-            continue
-        reference = candidate.with_name(f"{speaker}_{utterance}.wav")
-        if not reference.is_file():
-            print(f"Skipping {candidate.name}: missing reference {reference}")
-            continue
-        yield reference, candidate
-
-
 def extract_features(target_speakers=DEFAULT_SPEAKERS, models=tuple(CACHE_FILENAMES), *,
-                     wav_dir=TEMP_DIR / "wav_txt_pairs", cache_dir=TEMP_DIR / "features",
+                     wav_dir=TEMP_DIR / "wav_txt_pairs", cache_dir=TEMP_DIR / "features_frame",
                      model_dir=TEMP_DIR / "models", device=None, gpu=None,
                      genaid_source=None, voxlect_repo=None):
     wav_dir, cache_dir, model_dir = map(lambda p: Path(p).expanduser().resolve(), (wav_dir, cache_dir, model_dir))
@@ -126,15 +88,14 @@ def extract_features(target_speakers=DEFAULT_SPEAKERS, models=tuple(CACHE_FILENA
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wav-dir", type=Path, default=TEMP_DIR / "wav_txt_pairs")
-    parser.add_argument("--cache-dir", type=Path, default=TEMP_DIR / "features")
+    parser.add_argument("--cache-dir", type=Path, default=TEMP_DIR / "features_frame")
     parser.add_argument("--model-dir", type=Path, default=TEMP_DIR / "models")
     parser.add_argument("--target-speakers", nargs="+", default=DEFAULT_SPEAKERS)
     parser.add_argument("--all-speakers", action="store_true", help="Process every speaker instead of the four target speakers.")
     parser.add_argument("--models", nargs="+", choices=tuple(CACHE_FILENAMES), default=tuple(CACHE_FILENAMES))
     parser.add_argument("--device", help="Device for accent/speaker models, e.g. cpu or cuda:0 (default: automatic).")
     parser.add_argument("--gpu", type=int, default=None, help="PPG GPU index; -1 selects CPU (default: CPU).")
-    parser.add_argument("--genaid-source",
-                        help="GenAID repository ID or local model directory (default: jzmzhong/accent-id-genaid).")
+    parser.add_argument("--genaid-source", help="GenAID repository ID or local model directory (default: jzmzhong/accent-id-genaid).")
     parser.add_argument("--voxlect-repo", type=Path, help="Voxlect repository containing src/model/dialect/whisper_dialect.py.")
     args = parser.parse_args()
     extract_features(target_speakers=None if args.all_speakers else args.target_speakers,
