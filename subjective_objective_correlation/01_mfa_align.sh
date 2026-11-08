@@ -12,9 +12,7 @@ RAW_DATA_DIR="${SCRIPT_DIR}/../data"
 DATA_TEMP_DIR="${SCRIPT_DIR}/../data_temp"
 
 # find wav and txt pairs in the raw data directory and reorganize them into the temporary data directory with wav-txt pairs for each speaker
-if [ ! -d "${DATA_TEMP_DIR}/wav_txt_pairs" ]; then
-    python "${SCRIPT_DIR}/reorganise.py" "$RAW_DATA_DIR" "$DATA_TEMP_DIR"
-fi
+python "${SCRIPT_DIR}/reorganise.py" "$RAW_DATA_DIR" "$DATA_TEMP_DIR"
 
 IN_DIR=${DATA_TEMP_DIR}/wav_txt_pairs
 OUT_DIR=${IN_DIR}_mfa

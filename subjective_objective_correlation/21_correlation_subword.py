@@ -246,7 +246,7 @@ def build_subword_summaries(args, statistics):
         path = args.feature_dir / filename
         if path not in caches:
             if not path.is_file():
-                raise FileNotFoundError(f"Missing feature cache {path}; run 12_extract_features.sh first.")
+                raise FileNotFoundError(f"Missing feature cache {path}; run 12_extract_features_subword.sh first.")
             caches[path] = torch.load(path, map_location="cpu", weights_only=True)
     utterances = {entry["id"]: entry["text"].split("|")
                   for entry in json.loads(args.segmented_text.read_text())}

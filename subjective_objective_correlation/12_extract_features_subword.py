@@ -1,7 +1,4 @@
-"""Extract PPG, accent, speaker, and F0/formant features into data_temp caches.
-
-Reference audio is the original recording of the candidate's spoken utterance,
-not the synthesis prompt named after ``_ref_`` in the candidate filename.
+"""Extract frame-level PPG, accent, speaker, and F0/formant features for subword analysis.
 """
 
 import argparse
@@ -65,7 +62,7 @@ def candidate_pairs(wav_dir, target_speakers):
 
 
 def extract_features(target_speakers=DEFAULT_SPEAKERS, models=tuple(CACHE_FILENAMES), *,
-                     wav_dir=DATA_DIR / "wav", cache_dir=TEMP_DIR / "features",
+                     wav_dir=TEMP_DIR / "wav_txt_pairs", cache_dir=TEMP_DIR / "features",
                      model_dir=TEMP_DIR / "models", device=None, gpu=None,
                      genaid_source=None, voxlect_repo=None):
     wav_dir, cache_dir, model_dir = map(lambda p: Path(p).expanduser().resolve(), (wav_dir, cache_dir, model_dir))
@@ -128,7 +125,7 @@ def extract_features(target_speakers=DEFAULT_SPEAKERS, models=tuple(CACHE_FILENA
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--wav-dir", type=Path, default=DATA_DIR / "wav")
+    parser.add_argument("--wav-dir", type=Path, default=TEMP_DIR / "wav_txt_pairs")
     parser.add_argument("--cache-dir", type=Path, default=TEMP_DIR / "features")
     parser.add_argument("--model-dir", type=Path, default=TEMP_DIR / "models")
     parser.add_argument("--target-speakers", nargs="+", default=DEFAULT_SPEAKERS)
